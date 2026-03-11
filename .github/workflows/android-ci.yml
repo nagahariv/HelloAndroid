@@ -11,18 +11,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Java
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
+      # 3️⃣ Export JAVA_HOME for Snyk
       - name: Export JAVA_HOME
         run: echo "JAVA_HOME=${{ env.JAVA_HOME }}" >> $GITHUB_ENV
 
+      # 4️⃣ Cache Gradle dependencies
       - name: Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
@@ -33,19 +37,27 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}
 
+      # 5️⃣ Ensure Gradle wrapper is executable
       - name: Grant execute permission for Gradle
         run: chmod +x gradlew
 
+      # 6️⃣ Build project
       - name: Build Android Project
         run: ./gradlew build
 
+      # 7️⃣ Run Android Lint
       - name: Run Android Lint
         run: ./gradlew lint
 
+      # 8️⃣ Run Semgrep security scan
       - name: Run Semgrep Security Scan
         uses: returntocorp/semgrep-action@v1
 
+      # 9️⃣ Run Snyk dependency scan on host (docker: false)
       - name: Run Snyk Dependency Scan
         uses: snyk/actions/gradle@master
+        with:
+          command: test
+          docker: false          # <-- IMPORTANT: run on host JVM
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
