@@ -27,26 +27,16 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/wrapper-validation-action@v2
 
-      - name: Cache Gradle Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}
-
-      - name: Grant execute permission for Gradle
+      - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Build Android Project
+      - name: Build Project
         run: ./gradlew build --no-daemon
 
-      - name: Run Android Lint
+      - name: Run Lint
         run: ./gradlew lint --no-daemon
 
-      - name: Run Unit Tests
+      - name: Run Tests
         run: ./gradlew test --no-daemon
 
       - name: Run Semgrep Security Scan
@@ -54,10 +44,12 @@ jobs:
         with:
           config: p/security-audit
 
-      - name: Run Snyk Dependency Scan
-        uses: snyk/actions/gradle@master
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Authenticate Snyk
+        run: snyk auth ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run Snyk Vulnerability Scan
+        run: snyk test --severity-threshold=high
         continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
